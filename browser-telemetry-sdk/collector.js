@@ -193,7 +193,8 @@ const collector = (function () {
             type: 'error',
             error: errorData,
             timestamp: new Date().toISOString(),
-            url: window.location.href
+            url: window.location.href,
+            session: getSessionId()
         });
     }
 
@@ -246,7 +247,8 @@ const collector = (function () {
             send({
                 type: 'activity',
                 url: window.location.href,
-                activities: activityBuffer.splice(0, activityBuffer.length)
+                activities: activityBuffer.splice(0, activityBuffer.length),
+                session: getSessionId()
             });
         }
 
