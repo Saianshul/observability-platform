@@ -39,7 +39,7 @@ app.post('/log', async (req, res) => {
         const payload = req.body;
         
         const query = `
-            INSERT INTO frontend_user_data (session_id, event_type, url, payload)
+            INSERT INTO browser_telemetry (session_id, event_type, url, payload)
             VALUES ($1, $2, $3, $4) 
             RETURNING *;
         `;
