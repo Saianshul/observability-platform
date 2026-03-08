@@ -40,7 +40,8 @@ const collector = (function () {
     const IDLE_TIMEOUT_MS = 2000;
     const MOUSEMOVE_RECORD_INTERVAL_MS = 500;
 
-    const COOKIE_EXPIRATION_S = 86400;
+    const UID_COOKIE_EXPIRATION_S = 31536000;
+    const SID_COOKIE_EXPIRATION_S = 1800;
 
     function init(options) {
         if (initialized) {
@@ -194,7 +195,8 @@ const collector = (function () {
             error: errorData,
             timestamp: new Date().toISOString(),
             url: window.location.href,
-            session: getSessionId()
+            userId: getUserId(),
+            sessionId: getSessionId()
         });
     }
 
@@ -248,7 +250,8 @@ const collector = (function () {
                 type: 'activity',
                 url: window.location.href,
                 activities: activityBuffer.splice(0, activityBuffer.length),
-                session: getSessionId()
+                userId: getUserId(),
+                sessionId: getSessionId()
             });
         }
 
@@ -365,16 +368,33 @@ const collector = (function () {
         img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     }
 
+    function getUserId() {
+        let uid = getCookie('_collector_uid');
+
+        if (!uid) {
+            uid = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        }
+
+        document.cookie = `_collector_uid=${uid}; path=/; max-age=${UID_COOKIE_EXPIRATION_S}; Secure`;
+
+        return uid;
+    }
+
     function getSessionId() {
-        let sid = sessionStorage.getItem('_collector_sid');
+        let sid = getCookie('_collector_sid');
 
         if (!sid) {
             sid = Math.random().toString(36).substring(2) + Date.now().toString(36);
-            sessionStorage.setItem('_collector_sid', sid);
-            document.cookie = `_collector_sid=${sid}; path=/; max-age=${COOKIE_EXPIRATION_S}; Secure`;
         }
 
+        document.cookie = `_collector_sid=${sid}; path=/; max-age=${SID_COOKIE_EXPIRATION_S}; Secure`;
+
         return sid;
+    }
+
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : null;
     }
 
     function getTechnographics() {
@@ -500,7 +520,8 @@ const collector = (function () {
             title: document.title,
             referrer: document.referrer,
             timestamp: new Date().toISOString(),
-            session: getSessionId()
+            userId: getUserId(),
+            sessionId: getSessionId()
         };
 
         for (const k of Object.keys(globalProps)) {

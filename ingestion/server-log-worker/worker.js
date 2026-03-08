@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const LOG_FILE_PATH = process.env.LOG_FILE_PATH;
-const logRegex = /^(\S+) \[(.*?)\] "(.*?)" (\d+) (\d+) (\d+) "(.*?)" "(.*?)" "(.*?)" "UA-Hint:(.*?)" "Platform:(.*?)" "Mobile:(.*?)" "Model:(.*?)" "Form-Factors:(.*?)" "Session:(.*?)"$/;
+const logRegex = /^(\S+) \[(.*?)\] "(.*?)" (\d+) (\d+) (\d+) "(.*?)" "(.*?)" "(.*?)" "UA-Hint:(.*?)" "Platform:(.*?)" "Mobile:(.*?)" "Model:(.*?)" "Form-Factors:(.*?)" "User:(.*?)" "Session:(.*?)"$/;
 const tail = new Tail(LOG_FILE_PATH);
 
 const pool = new Pool({
@@ -41,17 +41,18 @@ tail.on('line', async (line) => {
         const model = match[13];
         const formFactors = match[14];
         
-        const sessionId = match[15] === '-' ? null : match[15];
+        const userId = match[15] === '-' ? null : match[15];
+        const sessionId = match[16] === '-' ? null : match[16];
         
         const query = `
-            INSERT INTO server_logs (ip, timestamp, HTTP_method, path, protocol, status_code, bytes_sent, request_serving_time_microseconds, referer, user_agent, accept_language, sec_ch_ua, platform, mobile, model, form_factors, session_id) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            INSERT INTO server_logs (ip, timestamp, HTTP_method, path, protocol, status_code, bytes_sent, request_serving_time_microseconds, referer, user_agent, accept_language, sec_ch_ua, platform, mobile, model, form_factors, user_id, session_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         `;
-        const values = [ip, timestamp, HTTPMethod, path, protocol, statusCode, bytesSent, requestServingTimeMicroseconds, referer, userAgent, acceptLanguage, securityClientHintUserAgent, platform, mobile, model, formFactors, sessionId];
+        const values = [ip, timestamp, HTTPMethod, path, protocol, statusCode, bytesSent, requestServingTimeMicroseconds, referer, userAgent, acceptLanguage, securityClientHintUserAgent, platform, mobile, model, formFactors, userId, sessionId];
 
         try {
             await pool.query(query, values);
-            console.log(`Inserted log for session ${sessionId} and path ${path}`);
+            console.log(`Inserted log for user ${userId} with session ${sessionId} and path ${path}`);
         } catch (err) {
             console.error(err);
         }

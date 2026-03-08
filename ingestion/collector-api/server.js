@@ -33,17 +33,18 @@ const pool = new Pool({
 
 app.post('/log', async (req, res) => {
     try {
-        const sessionId = req.body.session || 'unknown';
+        const userId = req.body.userId || 'unknown';
+        const sessionId = req.body.sessionId || 'unknown';
         const eventType = req.body.type || 'unknown';
         const url = req.body.url || 'unknown';
         const payload = req.body;
         
         const query = `
-            INSERT INTO browser_telemetry (session_id, event_type, url, payload)
-            VALUES ($1, $2, $3, $4) 
+            INSERT INTO browser_telemetry (user_id, session_id, event_type, url, payload)
+            VALUES ($1, $2, $3, $4, $5) 
             RETURNING *;
         `;
-        const values = [sessionId, eventType, url, JSON.stringify(payload)];
+        const values = [userId, sessionId, eventType, url, JSON.stringify(payload)];
         const result = await pool.query(query, values);
 
         res.status(201).json(result.rows[0]);
