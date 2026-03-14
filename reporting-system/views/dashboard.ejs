@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telemetry Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f4f4f5; padding: 2rem; margin: 0; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .btn-logout { padding: 0.5rem 1rem; background: #dc2626; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .btn-logout:hover { background: #b91c1c; }
+        
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .chart-card { background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; color: #64748b; }
+        tr:hover { background-color: #f1f5f9; }
+        
+        .payload { font-family: monospace; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; word-break: break-all; }
+        .badge { background: #2563eb; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        .mono { font-family: monospace; color: #475569; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Telemetry Data (<%= events.length %> events)</h2>
+            <a href="/admin/logout" class="btn-logout">Log Out</a>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <canvas id="eventTypeChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <canvas id="urlChart"></canvas>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp (PT)</th>
+                    <th>Event Type</th>
+                    <th>User ID</th>
+                    <th>Session ID</th>
+                    <th>URL</th>
+                    <th>Payload Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (events.length === 0) { %>
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem;">No telemetry events collected yet.</td>
+                    </tr>
+                <% } else { %>
+                    <% events.forEach(event => { %>
+                        <tr>
+                            <td><%= new Date(event.created_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', dateStyle: 'short', timeStyle: 'medium' }) %></td>
+                            <td><span class="badge"><%= event.event_type %></span></td>
+                            <td class="mono"><%= event.user_id || 'Anonymous' %></td>
+                            <td class="mono"><%= event.session_id %></td>
+                            <td><%= event.url %></td>
+                            <td><div class="payload"><%= JSON.stringify(event.payload) %></div></td>
+                        </tr>
+                    <% }) %>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const rawEvents = <%- JSON.stringify(events) %>;
+
+        const typeCounts = {};
+
+        rawEvents.forEach(event => {
+            const type = event.event_type;
+            typeCounts[type] = (typeCounts[type] || 0) + 1;
+        });
+
+        const ctx = document.getElementById('eventTypeChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(typeCounts),
+                datasets: [{
+                    label: 'Total Events',
+                    data: Object.values(typeCounts),
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: 'Events by Type', font: { size: 16 } },
+                    legend: { display: false }
+                }
+            }
+        });
+
+        const urlCounts = {};
+
+        rawEvents.forEach(event => {
+            let path = event.url;
+
+            try {
+                const urlObj = new URL(event.url);
+                path = urlObj.pathname === '/' ? '/ (Home)' : urlObj.pathname;
+            } catch(e) { 
+                // If it's not a full URL, just use the raw string
+            }
+            
+            urlCounts[path] = (urlCounts[path] || 0) + 1;
+        });
+
+        const ctx2 = document.getElementById('urlChart').getContext('2d');
+        
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(urlCounts),
+                datasets: [{
+                    data: Object.values(urlCounts),
+                    backgroundColor: [
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(236, 72, 153, 0.8)',
+                        'rgba(14, 165, 233, 0.8)',
+                        'rgba(16, 185, 129, 0.8)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Activity by Page', font: { size: 16 } },
+                    legend: { display: true, position: 'right' } 
+                }
+            }
+        });
+    </script>
+</body>
+</html>
