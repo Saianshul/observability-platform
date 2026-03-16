@@ -1,12 +1,20 @@
 import pool from '../config/db.js';
 
-export const findAllEvents = async () => {
-    const query = `
+export const findAllEvents = async (options = {}) => {
+    let query = `
         SELECT * 
         FROM browser_telemetry 
-        ORDER BY created_at DESC;
     `;
-    const result = await pool.query(query);
+    const values = [];
+
+    if (options.startDate && options.endDate) {
+        query += ` WHERE created_at >= $1 AND created_at <= $2 `;
+        values.push(options.startDate, options.endDate + ' 23:59:59');
+    }
+
+    query += ` ORDER BY created_at DESC;`;
+
+    const result = await pool.query(query, values);
 
     return result.rows;
 }

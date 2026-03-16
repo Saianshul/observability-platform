@@ -19,7 +19,7 @@ export const authenticate = (req, res, next) => {
                 console.error(err);
                 return kickOut();
             } else {
-                req.admin = decodedToken;
+                req.user = decodedToken;
                 next();
             }
         });

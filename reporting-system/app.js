@@ -2,10 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
-import adminRoutes from './routes/adminRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import { authenticate } from './middleware/authenticate.js';
-import { findAllEvents } from './models/eventModel.js';
+import { requireRole } from './middleware/roles.js';
+import { getReportingDashboard } from './controllers/reportControllers.js';
 
 dotenv.config();
 
@@ -29,30 +31,23 @@ app.use(cors({
     credentials: true
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 app.use(cookieParser());
 
-app.use('/admin', adminRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.get('/login', (req, res) => {
     res.render('login');
 });
 
-app.get('/', authenticate, async (req, res) => {
-    try {
-        const allEvents = await findAllEvents();
+app.get('/', authenticate, getReportingDashboard);
 
-        res.render('dashboard', {
-            admin: req.admin,
-            events: allEvents
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error loading the dashboard data.');
-    }
+app.get('/manage-users', authenticate, requireRole(['super_admin']), (req, res) => {
+    res.render('user-management', { user: req.user });
 });
 
 app.listen(PORT, () => {

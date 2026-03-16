@@ -1,157 +1,1648 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telemetry Dashboard</title>
+    <title>Analytics Dashboard | Observability</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: system-ui, sans-serif; background: #f4f4f5; padding: 2rem; margin: 0; color: #333; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .btn-logout { padding: 0.5rem 1rem; background: #dc2626; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; }
-        .btn-logout:hover { background: #b91c1c; }
-        
-        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
-        .chart-card { background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: rgba(30, 41, 59, 0.7);
+            --surface-hover: rgba(51, 65, 85, 0.8);
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
 
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
-        th { background-color: #f8fafc; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; color: #64748b; }
-        tr:hover { background-color: #f1f5f9; }
-        
-        .payload { font-family: monospace; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; word-break: break-all; }
-        .badge { background: #2563eb; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
-        .mono { font-family: monospace; color: #475569; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 35%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 35%);
+            margin: 0;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 40;
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-logout {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background 0.2s;
+            box-sizing: border-box;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .main-content {
+            flex-grow: 1;
+            margin-left: 250px;
+            padding: 2rem 3rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .topbar h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background: var(--surface-color);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+            letter-spacing: -0.05em;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th, .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .data-table th {
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.8rem;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 0.875rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-main);
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
     </style>
 </head>
+
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h2>Telemetry Data (<%= events.length %> events)</h2>
-            <a href="/admin/logout" class="btn-logout">Log Out</a>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>Platform</h1>
         </div>
 
-        <div class="charts-grid">
-            <div class="chart-card">
-                <canvas id="eventTypeChart"></canvas>
-            </div>
-            <div class="chart-card">
-                <canvas id="urlChart"></canvas>
-            </div>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Timestamp (PT)</th>
-                    <th>Event Type</th>
-                    <th>User ID</th>
-                    <th>Session ID</th>
-                    <th>URL</th>
-                    <th>Payload Data</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% if (events.length === 0) { %>
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 2rem;">No telemetry events collected yet.</td>
-                    </tr>
-                <% } else { %>
-                    <% events.forEach(event => { %>
-                        <tr>
-                            <td><%= new Date(event.created_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', dateStyle: 'short', timeStyle: 'medium' }) %></td>
-                            <td><span class="badge"><%= event.event_type %></span></td>
-                            <td class="mono"><%= event.user_id || 'Anonymous' %></td>
-                            <td class="mono"><%= event.session_id %></td>
-                            <td><%= event.url %></td>
-                            <td><div class="payload"><%= JSON.stringify(event.payload) %></div></td>
-                        </tr>
-                    <% }) %>
+        <nav class="nav-menu">
+            <a class="nav-item active" data-target="overview">Overview</a>
+            <% if (user.role==='super_admin' || (user.permissions && user.permissions.includes('performance'))) { %>
+                <a class="nav-item" data-target="performance">Performance</a>
                 <% } %>
-            </tbody>
-        </table>
+                    <% if (user.role==='super_admin' || (user.permissions && user.permissions.includes('behavioral'))) {
+                        %>
+                        <a class="nav-item" data-target="behavioral">Behavioral</a>
+                        <% } %>
+                            <% if (user.role==='super_admin' || (user.permissions &&
+                                user.permissions.includes('audience'))) { %>
+                                <a class="nav-item" data-target="audience">Audience</a>
+                                <% } %>
+                                    <% if (user.role==='super_admin' || (user.permissions &&
+                                        user.permissions.includes('errors'))) { %>
+                                        <a class="nav-item" data-target="errors">Errors</a>
+                                        <% } %>
+                                            <div style="margin-top: 2rem; padding: 0 1.5rem;">
+                                                <p
+                                                    style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
+                                                    System</p>
+                                                <a href="/api/reports/saved" class="nav-item"
+                                                    style="padding: 0.5rem 0;">Saved Reports</a>
+                                                <% if (user.role==='super_admin' ) { %>
+                                                    <a href="/manage-users" class="nav-item"
+                                                        style="padding: 0.5rem 0;">Manage Users</a>
+                                                    <% } %>
+                                            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span class="user-name">@<%= user.username %></span>
+                <span class="user-role">
+                    <%= user.role.replace('_', ' ' ) %>
+                </span>
+            </div>
+            <a href="/api/users/logout" class="btn-logout">Sign Out</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- Overview Section -->
+        <section id="overview" class="view-section active">
+            <div class="topbar">
+                <h2>System Overview</h2>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <form id="dateFilterForm" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="date" id="startDate" name="startDate" style="padding: 0.4rem; font-size: 0.85rem;" required>
+                        <span style="color: var(--text-muted);">to</span>
+                        <input type="date" id="endDate" name="endDate" style="padding: 0.4rem; font-size: 0.85rem;" required>
+                        <button type="submit" class="btn btn-outline" style="padding: 0.4rem 0.8rem;">Apply</button>
+                    </form>
+                    <button class="btn btn-primary" onclick="openReportModal('Overview')">Export Report</button>
+                </div>
+            </div>
+
+            <div class="grid-4">
+                <div class="card">
+                    <div class="stat-label">Total Page Views</div>
+                    <% const pageViews=events.filter(e=> e.event_type==='pageview').length; %>
+                        <div class="stat-value" style="color: var(--primary-color);">
+                            <%= pageViews %>
+                        </div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Unique Sessions</div>
+                    <% const uniqueSessions=new Set(events.map(e=> e.session_id)).size; %>
+                        <div class="stat-value" style="color: var(--success-color);">
+                            <%= uniqueSessions %>
+                        </div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Average Load Time</div>
+                    <% 
+                        const timings = events.filter(e => e.event_type === 'pageview' && e.payload && e.payload.timing && e.payload.timing.totalLoadTime).map(e => e.payload.timing.totalLoadTime);
+                        const avgLoadTime = timings.length > 0 ? (timings.reduce((a, b) => a + b, 0) / timings.length).toFixed(0) + 'ms' : 'N/A';
+                        %>
+                        <div class="stat-value" style="color: #a855f7;"> <!-- purple -->
+                            <%= avgLoadTime %>
+                        </div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Error Count</div>
+                    <% const totalError=events.filter(e=> e.event_type==='error' || e.event_type==='unhandled_rejection').length + logs.filter(l =>
+                        l.status_code >= 400).length; %>
+                        <div class="stat-value" style="color: var(--danger-color);">
+                            <%= totalError %>
+                        </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <h3>Activity</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="overviewChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Top Pages</h3>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>URL Path</th>
+                                <th style="text-align: right;">View Count</th>
+                                <th style="text-align: right;">Unique Visitors</th>
+                                <th style="text-align: right;">Interactions</th>
+                                <th style="text-align: right;">Avg. Load Time</th>
+                                <th style="text-align: right;">Error Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% 
+                                const urlStats = {};
+                                
+                                events.forEach(e => {
+                                    let path;
+                                    try {
+                                        path = new URL(e.url).pathname;
+                                    } catch (err) {
+                                        path = e.url; // fallback
+                                    }
+                                    
+                                    if (!urlStats[path]) {
+                                        urlStats[path] = {
+                                            viewCount: 0,
+                                            uniqueVisitors: new Set(),
+                                            interactionCount: 0,
+                                            loadTimes: [],
+                                            errorCount: 0
+                                        };
+                                    }
+                                    
+                                    if (e.event_type === 'pageview') {
+                                        urlStats[path].viewCount++;
+                                        if (e.payload && e.payload.timing && e.payload.timing.totalLoadTime) {
+                                            urlStats[path].loadTimes.push(e.payload.timing.totalLoadTime);
+                                        }
+                                    } else if (e.event_type === 'activity') {
+                                        urlStats[path].interactionCount++;
+                                    } else if (e.event_type === 'error' || e.event_type === 'unhandled_rejection') {
+                                        urlStats[path].errorCount++;
+                                    }
+                                    
+                                    if (e.user_id) {
+                                        urlStats[path].uniqueVisitors.add(e.user_id);
+                                    } else if (e.session_id) {
+                                        urlStats[path].uniqueVisitors.add(e.session_id);
+                                    }
+                                });
+
+                                logs.forEach(l => {
+                                    if (l.status_code >= 400 && urlStats[l.path]) {
+                                        urlStats[l.path].errorCount++;
+                                    }
+                                });
+
+                                const topUrls = Object.keys(urlStats)
+                                    .map(url => {
+                                        const stats = urlStats[url];
+                                        const avgLoad = stats.loadTimes.length > 0 ? (stats.loadTimes.reduce((a, b) => a + b, 0) / stats.loadTimes.length).toFixed(0) + 'ms' : 'N/A';
+                                        
+                                        return {
+                                            url,
+                                            viewCount: stats.viewCount,
+                                            uniqueVisitors: stats.uniqueVisitors.size,
+                                            interactionCount: stats.interactionCount,
+                                            avgLoadTime: avgLoad,
+                                            errorCount: stats.errorCount
+                                        };
+                                    })
+                                    .filter(item => item.viewCount > 0)
+                                    .sort((a, b) => b.viewCount - a.viewCount)
+                                    .slice(0, 10);
+
+                                if (topUrls.length === 0) {
+                                %>
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted);">No pageview data available</td>
+                                </tr>
+                                <% } else { %>
+                                    <% topUrls.forEach(item=> { %>
+                                        <tr>
+                                            <td style="font-family: monospace; color: var(--text-main);">
+                                                <%= item.url %>
+                                            </td>
+                                            <td style="text-align: center; font-weight: 600; color: var(--primary-color);"><%= item.viewCount %></td>
+                                            <td style="text-align: center; color: var(--success-color);"><%= item.uniqueVisitors %></td>
+                                            <td style="text-align: center;"><%= item.interactionCount %></td>
+                                            <td style="text-align: center; color: #a855f7;"><%= item.avgLoadTime %></td>
+                                            <td style="text-align: center; color: <%= item.errorCount > 0 ? 'var(--danger-color)' : 'inherit' %>;"><%= item.errorCount %></td>
+                                        </tr>
+                                    <% }) %>
+                                <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance Section -->
+        <section id="performance" class="view-section">
+            <div class="topbar">
+                <h2>Performance Analytics</h2>
+                <button class="btn btn-primary" onclick="openReportModal('performance')">Export Performance
+                    Report</button>
+            </div>
+
+            <!-- Subsection 1: Core Web Vitals -->
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--text-main); font-size: 1.25rem;">Core Web
+                Vitals</h3>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-1">Health Overview</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-1"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-2">Vitals Score Distribution</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-2"></canvas></div>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-3">Trends Over Time - LCP & INP</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-3"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-4">Trends Over Time - CLS</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-4"></canvas></div>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-5">Best Performing Pages</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-5"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-6">Worst Performing Pages</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-6"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Subsection 2: Network & Navigation -->
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--text-main); font-size: 1.25rem;">Network &
+                Navigation</h3>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-7">Loading Journey Breakdown</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-7"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-8">Client-Side Rendering Funnel</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-8"></canvas></div>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-9">TTFB by Connection Type</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-9"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-10">Average Load Time by Page</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-10"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Subsection 3: Resources -->
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--text-main); font-size: 1.25rem;">Resources
+            </h3>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-11">Page Weight by Resource Type</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-11"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-12">Total Load Time vs Resource Count</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-12"></canvas></div>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-13">Slowest Resource Types</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-13"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="performance-chart-title-14">Resource Count Distribution</h3>
+                    </div>
+                    <div class="chart-container"><canvas id="performance-chart-14"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Other Dynamic Category Sections -->
+        <% ['behavioral', 'audience' , 'errors' ].forEach(cat=> { %>
+            <section id="<%= cat %>" class="view-section">
+                <div class="topbar">
+                    <h2 style="text-transform: capitalize;">
+                        <%= cat %> Analytics
+                    </h2>
+                    <button class="btn btn-primary" onclick="openReportModal('<%= cat %>')">Export <%= cat %>
+                            Report</button>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 id="<%= cat %>-chart-title-1">Loading Data...</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="<%= cat %>-chart-1"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 id="<%= cat %>-chart-title-2">Loading Data...</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="<%= cat %>-chart-2"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <% if (cat === 'behavioral') { %>
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <h3>Homepage Clicks Heatmap</h3>
+                    </div>
+                    <div class="chart-container" style="position: relative; overflow: hidden; height: auto; min-height: 400px; padding: 0;">
+                        <canvas id="heatmapCanvas" style="width: 100%; height: auto; display: block;"></canvas>
+                    </div>
+                </div>
+                <% } %>
+                
+            </section>
+            <% }) %>
+    </main>
+
+    <!-- Report Generation Modal -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <h2 style="margin-top: 0;">Generate Static Report</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">
+                This will capture the current data snapshot and attach your commentary to a shareable PDF.
+            </p>
+            <form id="reportForm">
+                <input type="hidden" id="reportCategory" value="">
+
+                <div class="form-group">
+                    <label>Report Title</label>
+                    <input type="text" id="reportTitle" required placeholder="e.g. Q3 Performance Summary">
+                </div>
+
+                <div class="form-group">
+                    <label>Analyst Commentary (Markdown Supported)</label>
+                    <textarea id="reportComment" rows="6" required placeholder="Write your analysis here..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeReportModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveReportBtn">Generate & Save PDF</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
         const rawEvents = <%- JSON.stringify(events) %>;
+        const rawLogs = <%- JSON.stringify(logs) %>;
 
-        const typeCounts = {};
+        const charts = {};
 
-        rawEvents.forEach(event => {
-            const type = event.event_type;
-            typeCounts[type] = (typeCounts[type] || 0) + 1;
+        document.querySelectorAll('.nav-item').forEach(item => {
+            if (!item.hasAttribute('data-target')) return;
+
+            item.addEventListener('click', (e) => {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                e.target.classList.add('active');
+
+                const target = e.target.getAttribute('data-target');
+                document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+                document.getElementById(target).classList.add('active');
+
+                if (target !== 'overview') {
+                    loadCategoryData(target);
+                }
+            });
         });
 
-        const ctx = document.getElementById('eventTypeChart').getContext('2d');
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = 'Inter';
 
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: Object.keys(typeCounts),
-                datasets: [{
-                    label: 'Total Events',
-                    data: Object.values(typeCounts),
-                    backgroundColor: [
-                        'rgba(59, 130, 246, 0.8)',
-                        'rgba(16, 185, 129, 0.8)',
-                        'rgba(245, 158, 11, 0.8)',
-                        'rgba(239, 68, 68, 0.8)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    title: { display: true, text: 'Events by Type', font: { size: 16 } },
-                    legend: { display: false }
+        const initOverviewChart = () => {
+            const pageviews = rawEvents.filter(e => e.event_type === 'pageview');
+
+            const countsByDate = {};
+            pageviews.forEach(p => {
+                const dateObj = new Date(p.created_at || (p.payload && p.payload.timestamp) || Date.now());
+                const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                countsByDate[dateStr] = (countsByDate[dateStr] || 0) + 1;
+            });
+
+            const sortedDates = Object.keys(countsByDate).sort((a, b) => new Date(a) - new Date(b));
+            const dataCounts = sortedDates.map(date => countsByDate[date]);
+
+            const ctx = document.getElementById('overviewChart').getContext('2d');
+            charts['overview'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates,
+                    datasets: [{
+                        label: 'Page Views',
+                        data: dataCounts,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { text: 'Date', display: true }, grid: { display: false } },
+                        y: { title: { text: 'Page Views', display: true }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
                 }
+            });
+        };
+        initOverviewChart();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+
+        if (urlParams.has('startDate')) startDateInput.value = urlParams.get('startDate');
+        if (urlParams.has('endDate')) endDateInput.value = urlParams.get('endDate');
+
+        document.getElementById('dateFilterForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const start = startDateInput.value;
+            const end = endDateInput.value;
+            if (start && end) {
+                window.location.search = `?startDate=${start}&endDate=${end}`;
             }
         });
 
-        const urlCounts = {};
+        let currentCategoryData = {};
 
-        rawEvents.forEach(event => {
-            let path = event.url;
+        const loadCategoryData = async (cat) => {
+            try {
+                const queryStr = window.location.search;
+                const res = await fetch(`/api/reports/${cat}${queryStr}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                currentCategoryData = data;
+
+                if (charts[`${cat}-1`]) charts[`${cat}-1`].destroy();
+                if (charts[`${cat}-2`]) charts[`${cat}-2`].destroy();
+                if (cat === 'performance') {
+                    for (let i = 3; i <= 14; i++) {
+                        if (charts[`${cat}-${i}`]) charts[`${cat}-${i}`].destroy();
+                    }
+                }
+
+                const ctx1 = document.getElementById(`${cat}-chart-1`);
+                const ctx2 = document.getElementById(`${cat}-chart-2`);
+
+                if (cat === 'performance') {
+                    const { browser, server } = data;
+
+                    const pageviews = browser.filter(e => e.event_type === 'pageview');
+                    const vitals = browser.filter(e => e.event_type === 'vitals');
+
+                    // Subsection 1: Core Web Vitals
+
+                    // Chart 1: Health Overview
+                    let good = 0, needsImprovement = 0, poor = 0;
+                    vitals.forEach(v => {
+                        const vData = v.payload?.vitals;
+                        if (vData) {
+                            Object.values(vData).forEach(metric => {
+                                if (metric.score === 'good') good++;
+                                else if (metric.score === 'needsImprovement') needsImprovement++;
+                                else if (metric.score === 'poor') poor++;
+                            });
+                        }
+                    });
+
+                    charts['performance-1'] = new Chart(document.getElementById('performance-chart-1'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Good', 'Needs Improvement', 'Poor'],
+                            datasets: [{
+                                data: [good, needsImprovement, poor],
+                                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+
+                    // Chart 2: Vitals Score Distribution
+                    const distr = { lcp: { good: 0, ni: 0, poor: 0 }, cls: { good: 0, ni: 0, poor: 0 }, inp: { good: 0, ni: 0, poor: 0 } };
+                    vitals.forEach(v => {
+                        const vData = v.payload?.vitals;
+                        if (vData) {
+                            ['lcp', 'cls', 'inp'].forEach(m => {
+                                if (vData[m]) {
+                                    if (vData[m].score === 'good') distr[m].good++;
+                                    else if (vData[m].score === 'needsImprovement') distr[m].ni++;
+                                    else if (vData[m].score === 'poor') distr[m].poor++;
+                                }
+                            });
+                        }
+                    });
+
+                    charts['performance-2'] = new Chart(document.getElementById('performance-chart-2'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['LCP', 'CLS', 'INP'],
+                            datasets: [
+                                { label: 'Good', data: [distr.lcp.good, distr.cls.good, distr.inp.good], backgroundColor: '#10b981' },
+                                { label: 'Needs Impr.', data: [distr.lcp.ni, distr.cls.ni, distr.inp.ni], backgroundColor: '#f59e0b' },
+                                { label: 'Poor', data: [distr.lcp.poor, distr.cls.poor, distr.inp.poor], backgroundColor: '#ef4444' }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { stacked: true, title: { display: true, text: 'Metrics', color: '#94a3b8' } },
+                                y: { stacked: true, title: { display: true, text: 'Count', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Chart 3: Trends Over Time - LCP & INP
+                    vitals.sort((a, b) => new Date(a.payload?.timestamp || a.created_at || 0) - new Date(b.payload?.timestamp || b.created_at || 0));
+                    const vitalsLabels = vitals.map(v => new Date(v.payload?.timestamp || v.created_at || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+
+                    charts['performance-3'] = new Chart(document.getElementById('performance-chart-3'), {
+                        type: 'line',
+                        data: {
+                            labels: vitalsLabels,
+                            datasets: [
+                                { label: 'LCP', data: vitals.map(v => v.payload?.vitals?.lcp?.value || 0), borderColor: '#3b82f6', tension: 0.3 },
+                                { label: 'INP', data: vitals.map(v => v.payload?.vitals?.inp?.value || 0), borderColor: '#f59e0b', tension: 0.3 }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { title: { display: true, text: 'Time', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Load Time (ms)', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Chart 4: Trends Over Time - CLS
+                    charts['performance-4'] = new Chart(document.getElementById('performance-chart-4'), {
+                        type: 'line',
+                        data: {
+                            labels: vitalsLabels,
+                            datasets: [
+                                { data: vitals.map(v => v.payload?.vitals?.cls?.value || 0), borderColor: '#8b5cf6', tension: 0.3 }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Time', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Load Time (ms)', color: '#94a3b8' }, beginAtZero: true }
+                            }
+                        }
+                    });
+
+                    const urlVitals = {};
+                    vitals.forEach(v => {
+                        if (!v.url) return;
+                        let path = null;
+                        try {
+                            path = new URL(v.url).pathname;
+                        } catch (err) {
+                            path = v.url;
+                        }
+
+                        if (!urlVitals[path]) urlVitals[path] = { lcpTotal: 0, count: 0 };
+                        if (v.payload?.vitals?.lcp?.value) {
+                            urlVitals[path].lcpTotal += v.payload.vitals.lcp.value;
+                            urlVitals[path].count++;
+                        }
+                    });
+
+                    const avgLcpPages = Object.keys(urlVitals)
+                        .map(path => ({ path, avgLcp: urlVitals[path].lcpTotal / (urlVitals[path].count || 1) }));
+
+                    // Chart 5: Best Performing Pages
+                    const bestPages = [...avgLcpPages].sort((a, b) => a.avgLcp - b.avgLcp).slice(0, 5);
+
+                    charts['performance-5'] = new Chart(document.getElementById('performance-chart-5'), {
+                        type: 'bar',
+                        data: {
+                            labels: bestPages.map(p => p.path),
+                            datasets: [{ data: bestPages.map(p => p.avgLcp), backgroundColor: '#10b981' }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Path', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Avg LCP (ms)', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Chart 6: Worst Performing Pages
+                    const worstPages = [...avgLcpPages].sort((a, b) => b.avgLcp - a.avgLcp).slice(0, 5);
+
+                    charts['performance-6'] = new Chart(document.getElementById('performance-chart-6'), {
+                        type: 'bar',
+                        data: {
+                            labels: worstPages.map(p => p.path),
+                            datasets: [{ data: worstPages.map(p => p.avgLcp), backgroundColor: '#ef4444' }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Path', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Avg LCP (ms)', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Subsection 2: Network & Navigation
+
+                    const timings = pageviews.map(p => p.payload?.timing).filter(Boolean);
+
+                    // Chart 7: Loading Journey Breakdown
+                    const avgT = (key) => timings.reduce((sum, t) => sum + (t[key] || 0), 0) / (timings.length || 1);
+
+                    charts['performance-7'] = new Chart(document.getElementById('performance-chart-7'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Average Journey'],
+                            datasets: [
+                                { label: 'DNS Lookup', data: [avgT('dnsLookup')], backgroundColor: '#64748b' },
+                                { label: 'TCP Connect', data: [avgT('tcpConnect')], backgroundColor: '#3b82f6' },
+                                { label: 'TLS', data: [avgT('tlsHandshake')], backgroundColor: '#8b5cf6' },
+                                { label: 'TTFB', data: [avgT('ttfb')], backgroundColor: '#f59e0b' },
+                                { label: 'Download', data: [avgT('download')], backgroundColor: '#10b981' }
+                            ]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { title: { display: true, text: 'Load Time (ms)', color: '#94a3b8' }, stacked: true },
+                                y: { stacked: true }
+                            }
+                        }
+                    });
+
+                    // Chart 8: Client-Side Rendering Funnel
+                    charts['performance-8'] = new Chart(document.getElementById('performance-chart-8'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Fetch Time', 'DOM Interactive', 'DOM Complete'],
+                            datasets: [{
+                                data: [avgT('fetchTime'), avgT('domInteractive'), avgT('domComplete')],
+                                backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { stacked: true },
+                                y: { title: { display: true, text: 'Time (ms)', color: '#94a3b8' }, stacked: true }
+                            }
+                        }
+                    });
+
+                    // Chart 9: TTFB by Connection Type
+                    const connMap = {};
+                    pageviews.forEach(p => {
+                        const payload = p.payload || {};
+                        if (payload.technographics?.network && payload.timing) {
+                            const type = payload.technographics.network.effectiveType || 'unknown';
+                            if (!connMap[type]) connMap[type] = { ttfb: 0, count: 0 };
+                            connMap[type].ttfb += payload.timing.ttfb || 0;
+                            connMap[type].count++;
+                        }
+                    });
+
+                    charts['performance-9'] = new Chart(document.getElementById('performance-chart-9'), {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(connMap),
+                            datasets: [{
+                                data: Object.keys(connMap).map(k => connMap[k].ttfb / connMap[k].count),
+                                backgroundColor: '#f59e0b'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Connection Type', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Time (ms)', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Chart 10: Average Load Time by Page
+                    const pageLoads = {};
+                    pageviews.forEach(p => {
+                        const payload = p.payload || {};
+                        if (payload.timing && p.url) {
+                            let path = null;
+                            try {
+                                path = new URL(p.url).pathname;
+                            } catch (err) {
+                                path = p.url;
+                            }
+
+                            if (!pageLoads[path]) pageLoads[path] = { load: 0, count: 0 };
+                            pageLoads[path].load += payload.timing.totalLoadTime || 0;
+                            pageLoads[path].count++;
+                        }
+                    });
+
+                    const topPageLoads = Object.keys(pageLoads)
+                        .map(path => ({ path, avgLoad: pageLoads[path].load / pageLoads[path].count }))
+                        .sort((a, b) => b.avgLoad - a.avgLoad).slice(0, 5);
+
+                    charts['performance-10'] = new Chart(document.getElementById('performance-chart-10'), {
+                        type: 'bar',
+                        data: {
+                            labels: topPageLoads.map(p => p.path),
+                            datasets: [{ data: topPageLoads.map(p => p.avgLoad), backgroundColor: '#10b981' }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Path', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Avg Full Load Time (ms)', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Subsection 3: Resources
+
+                    const resourcesList = pageviews.map(p => p.payload?.resources).filter(Boolean);
+
+                    // Chart 11: Page Weight by Asset Type
+                    let scriptSize = 0, styleSize = 0, imgSize = 0, fontSize = 0;
+                    resourcesList.forEach(r => {
+                        scriptSize += r.byType?.script?.totalSize || 0;
+                        styleSize += r.byType?.link?.totalSize || 0;
+                        imgSize += r.byType?.img?.totalSize || 0;
+                        fontSize += r.byType?.font?.totalSize || 0;
+                    });
+
+                    charts['performance-11'] = new Chart(document.getElementById('performance-chart-11'), {
+                        type: 'pie',
+                        data: {
+                            labels: ['Scripts', 'CSS', 'Images', 'Fonts'],
+                            datasets: [{
+                                data: [scriptSize / 1024, styleSize / 1024, imgSize / 1024, fontSize / 1024], // KB
+                                backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const dataset = context.dataset;
+                                            const total = dataset.data.reduce((sum, val) => sum + val, 0);
+                                            const value = dataset.data[context.dataIndex];
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return `${percentage}%`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Chart 12: Total Load Time vs Resource Count
+                    const scatterData = pageviews.filter(p => p.payload?.resources && p.payload?.timing).map(p => ({
+                        x: p.payload.resources.totalResources,
+                        y: p.payload.timing.totalLoadTime
+                    }));
+
+                    charts['performance-12'] = new Chart(document.getElementById('performance-chart-12'), {
+                        type: 'scatter',
+                        data: {
+                            datasets: [{ data: scatterData, backgroundColor: '#8b5cf6' }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Resource Count', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Load Time (ms)', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Chart 13: Slowest Resource Types
+                    const rTypeTotals = { fetch: { dur: 0, c: 0 }, xmlhttprequest: { dur: 0, c: 0 }, script: { dur: 0, c: 0 }, img: { dur: 0, c: 0 } };
+                    resourcesList.forEach(r => {
+                        ['fetch', 'xmlhttprequest', 'script', 'img'].forEach(t => {
+                            if (r.byType && r.byType[t]) {
+                                rTypeTotals[t].dur += r.byType[t].totalDuration;
+                                rTypeTotals[t].c += r.byType[t].count;
+                            }
+                        });
+                    });
+
+                    charts['performance-13'] = new Chart(document.getElementById('performance-chart-13'), {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(rTypeTotals),
+                            datasets: [{
+                                data: Object.keys(rTypeTotals).map(k => rTypeTotals[k].c > 0 ? rTypeTotals[k].dur / rTypeTotals[k].c : 0),
+                                backgroundColor: '#ef4444'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Resource Type', color: '#94a3b8' } },
+                                y: { title: { display: true, text: 'Avg Duration (ms)', color: '#94a3b8' } }
+                            }
+                        }
+                    });
+
+                    // Chart 14: Resource Count Distribution
+                    let totalScripts = 0, totalLinks = 0, totalImgs = 0, totalOthers = 0;
+                    resourcesList.forEach(r => {
+                        totalScripts += r.byType?.script?.count || 0;
+                        totalLinks += r.byType?.link?.count || 0;
+                        totalImgs += r.byType?.img?.count || 0;
+                        totalOthers += r.byType?.other?.count || 0;
+                    });
+
+                    charts['performance-14'] = new Chart(document.getElementById('performance-chart-14'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Scripts', 'CSS', 'Images', 'Other'],
+                            datasets: [{
+                                data: [totalScripts, totalLinks, totalImgs, totalOthers],
+                                backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#64748b'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                else if (cat === 'behavioral') {
+                    document.getElementById(`${cat}-chart-title-1`).textContent = 'Event Types Frequency';
+                    document.getElementById(`${cat}-chart-title-2`).textContent = 'Top Requested Paths';
+
+                    const eMap = {};
+                    data.events.forEach(e => {
+                        if (e.payload && Array.isArray(e.payload.activities)) {
+                            e.payload.activities.forEach(act => {
+                                eMap[act.type] = (eMap[act.type] || 0) + 1;
+                            });
+                        }
+                    });
+
+                    charts[`${cat}-1`] = new Chart(ctx1, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(eMap),
+                            datasets: [{ 
+                                data: Object.values(eMap), 
+                                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#64748b', '#84cc16']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const dataset = context.dataset;
+                                            const total = dataset.data.reduce((sum, val) => sum + val, 0);
+                                            const value = dataset.data[context.dataIndex];
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return `${percentage}%`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    charts[`${cat}-2`] = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(data.paths).slice(0, 5),
+                            datasets: [{ data: Object.values(data.paths).slice(0, 5), backgroundColor: 'rgba(16, 185, 129, 0.8)' }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { title: { text: 'Path', display: true } },
+                                y: { title: { text: 'Requests', display: true } }
+                            }
+                        }
+                    });
+
+                    const renderHeatmap = async () => {
+                        const canvas = document.getElementById('heatmapCanvas');
+                        if (!canvas) return;
+                        
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                        
+                        const bgUrl = '/screenshots/homepage_heatmap_bg.png';
+
+                        const bgImage = new Image();
+                        bgImage.src = bgUrl;
+                        
+                        bgImage.onload = () => {
+                            canvas.width = bgImage.naturalWidth || 1440;
+                            canvas.height = bgImage.naturalHeight || 1080;
+                            
+                            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+                            
+                            const clicks = [];
+                            (data.events || []).forEach(e => {
+                                const isHomepage = e.url && (e.url.replace(/\/$/, '') === 'https://test.saianshulv.site');
+                                
+                                if (isHomepage) {
+                                    let payload = e.payload;
+                                    if (typeof payload === 'string') {
+                                        try { payload = JSON.parse(payload); } catch(err) {}
+                                    }
+                                    
+                                    if (payload && Array.isArray(payload.activities)) {
+                                        payload.activities.forEach(act => {
+                                            if (act.type === 'click' && act.x !== undefined && act.y !== undefined) {
+                                                clicks.push({ x: act.x, y: act.y });
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                            if (clicks.length === 0) {
+                                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = 'white';
+                                ctx.font = '24px sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('No click data recorded for the homepage yet.', canvas.width / 2, canvas.height / 2);
+                                return;
+                            }
+
+                            const alphaCanvas = document.createElement('canvas');
+                            alphaCanvas.width = canvas.width;
+                            alphaCanvas.height = canvas.height;
+                            const alphaCtx = alphaCanvas.getContext('2d', { willReadFrequently: true });
+
+                            const radius = 10;
+                            const blur = 10;
+
+                            alphaCtx.shadowBlur = blur;
+                            alphaCtx.shadowColor = 'black';
+                            alphaCtx.fillStyle = 'black';
+                            alphaCtx.globalAlpha = 0.5;
+
+                            clicks.forEach(click => {
+                                alphaCtx.beginPath();
+                                alphaCtx.arc(click.x, click.y, radius, 0, Math.PI * 2);
+                                alphaCtx.closePath();
+                                alphaCtx.fill();
+                            });
+
+                            const imageData = alphaCtx.getImageData(0, 0, alphaCanvas.width, alphaCanvas.height);
+                            const dataArray = imageData.data;
+                            
+                            const colorPalette = (function() {
+                                const paletteCanvas = document.createElement('canvas');
+                                paletteCanvas.width = 1;
+                                paletteCanvas.height = 256;
+                                const pCtx = paletteCanvas.getContext('2d');
+                                const gradient = pCtx.createLinearGradient(0, 0, 0, 256);
+                                gradient.addColorStop(0.2, 'blue');
+                                gradient.addColorStop(0.4, 'cyan');
+                                gradient.addColorStop(0.6, 'lime');
+                                gradient.addColorStop(0.8, 'yellow');
+                                gradient.addColorStop(1.0, 'red');
+                                pCtx.fillStyle = gradient;
+                                pCtx.fillRect(0, 0, 1, 256);
+                                return pCtx.getImageData(0, 0, 1, 256).data;
+                            })();
+
+                            for (let i = 0; i < dataArray.length; i += 4) {
+                                const alpha = dataArray[i + 3];
+                                
+                                if (alpha > 0) {
+                                    const offset = alpha * 4;
+                                    
+                                    dataArray[i] = colorPalette[offset];
+                                    dataArray[i + 1] = colorPalette[offset + 1];
+                                    dataArray[i + 2] = colorPalette[offset + 2];
+                                    dataArray[i + 3] = alpha * 0.8; 
+                                }
+                            }
+                            
+                            alphaCtx.putImageData(imageData, 0, 0);
+
+                            ctx.drawImage(alphaCanvas, 0, 0);
+                        };
+                    };
+                    
+                    renderHeatmap();
+                }
+
+                else if (cat === 'audience') {
+                    document.getElementById(`${cat}-chart-title-1`).textContent = 'User Platforms';
+                    document.getElementById(`${cat}-chart-title-2`).textContent = 'Form Factors';
+
+                    charts[`${cat}-1`] = new Chart(ctx1, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(data.platforms).map(k => k.replace(/[\\"/]/g, '')),
+                            datasets: [{ data: Object.values(data.platforms), backgroundColor: ['#8b5cf6', '#ec4899', '#0ea5e9'] }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+
+                    charts[`${cat}-2`] = new Chart(ctx2, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(data.formFactors).map(k => k.replace(/[\\"/]/g, '')),
+                            datasets: [{ data: Object.values(data.formFactors), backgroundColor: ['#10b981', '#f43f5e', '#3b82f6'] }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                else if (cat === 'errors') {
+                    document.getElementById(`${cat}-chart-title-1`).textContent = 'Server Status (4xx & 5xx)';
+                    document.getElementById(`${cat}-chart-title-2`).textContent = 'Client Side Exceptions';
+
+                    const sMap = {};
+                    data.server.forEach(s => sMap[s.status_code] = (sMap[s.status_code] || 0) + 1);
+
+                    charts[`${cat}-1`] = new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(sMap),
+                            datasets: [{ data: Object.values(sMap), backgroundColor: 'rgba(239, 68, 68, 0.8)' }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Status Code' } },
+                                y: { beginAtZero: true, title: { display: true, text: 'Number of Occurrences' } }
+                            }
+                        }
+                    });
+
+                    const cMap = {};
+                    data.browser.forEach(e => cMap[e.event_type] = (cMap[e.event_type] || 0) + 1);
+
+                    charts[`${cat}-2`] = new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(cMap),
+                            datasets: [{ data: Object.values(cMap), backgroundColor: ['#f59e0b', '#ef4444'] }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+            } catch (err) {
+                console.error('Failed to load chart data', err);
+            }
+        };
+
+        const openReportModal = (category) => {
+            document.getElementById('reportCategory').value = category.toLowerCase();
+            document.getElementById('reportModal').classList.add('active');
+        };
+
+        const closeReportModal = () => {
+            document.getElementById('reportModal').classList.remove('active');
+            document.getElementById('reportForm').reset();
+        };
+
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('saveReportBtn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Generating PDF...';
+            btn.disabled = true;
+
+            const title = document.getElementById('reportTitle').value;
+            const category = document.getElementById('reportCategory').value;
+            const comment = document.getElementById('reportComment').value;
+
+            const activeSection = document.querySelector('.view-section.active');
+            const stats = [];
+            const chartImages = [];
+            const tablesHtml = [];
+
+            if (activeSection) {
+                activeSection.querySelectorAll('.card').forEach(card => {
+                    const labelEl = card.querySelector('.stat-label');
+                    const valueEl = card.querySelector('.stat-value');
+                    if (labelEl && valueEl) {
+                        stats.push({
+                            label: labelEl.textContent.trim(),
+                            value: valueEl.textContent.trim()
+                        });
+                    }
+                });
+
+                activeSection.querySelectorAll('.card').forEach(card => {
+                    const tableEl = card.querySelector('.data-table');
+                    const titleEl = card.querySelector('.card-header h3');
+                    if (tableEl && titleEl) {
+                         tablesHtml.push({
+                             title: titleEl.textContent.trim(),
+                             html: tableEl.outerHTML
+                         });
+                    }
+                });
+
+                activeSection.querySelectorAll('.card').forEach(card => {
+                    const canvas = card.querySelector('canvas');
+                    const titleEl = card.querySelector('.card-header h3');
+                    if (canvas && titleEl) {
+                        try {
+                            const dataUrl = canvas.toDataURL('image/png');
+                            chartImages.push({
+                                title: titleEl.textContent.trim(),
+                                image: dataUrl
+                            });
+                        } catch (err) {
+                            console.error('Failed to capture canvas:', err);
+                        }
+                    }
+                });
+            }
+
+            const dataPayload = category === 'overview'
+                ? { eventsCount: rawEvents.length, logsCount: rawLogs.length }
+                : currentCategoryData;
 
             try {
-                const urlObj = new URL(event.url);
-                path = urlObj.pathname === '/' ? '/ (Home)' : urlObj.pathname;
-            } catch(e) { 
-                // If it's not a full URL, just use the raw string
-            }
-            
-            urlCounts[path] = (urlCounts[path] || 0) + 1;
-        });
+                const res = await fetch('/api/reports/saved', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        category,
+                        comment,
+                        combinedData: dataPayload,
+                        stats,
+                        chartImages,
+                        tablesHtml
+                    })
+                });
 
-        const ctx2 = document.getElementById('urlChart').getContext('2d');
-        
-        new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(urlCounts),
-                datasets: [{
-                    data: Object.values(urlCounts),
-                    backgroundColor: [
-                        'rgba(139, 92, 246, 0.8)',
-                        'rgba(236, 72, 153, 0.8)',
-                        'rgba(14, 165, 233, 0.8)',
-                        'rgba(16, 185, 129, 0.8)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: { display: true, text: 'Activity by Page', font: { size: 16 } },
-                    legend: { display: true, position: 'right' } 
+                if (res.ok) {
+                    alert('Report successfully generated and archived!');
+                    closeReportModal();
+                } else {
+                    alert('Failed to generate report.');
                 }
+            } catch (err) {
+                console.error(err);
+                alert('Network error during generation');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
             }
         });
     </script>
 </body>
+
 </html>

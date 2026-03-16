@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management | Observability</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: rgba(30, 41, 59, 0.7);
+            --surface-hover: rgba(51, 65, 85, 0.8);
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background: var(--bg-color); 
+            background-image: radial-gradient(circle at top center, rgba(59, 130, 246, 0.1), transparent 50%);
+            margin: 0; 
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: var(--surface-color);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .header-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        
+        .btn-danger { background: var(--danger-color); color: white; padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+        .btn-danger:hover { background: var(--danger-hover); }
+
+        .card {
+            background: var(--surface-color);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-super_admin { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.5); }
+        .badge-analyst { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.5); }
+        .badge-viewer { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.5); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .modal-title { margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 600; }
+
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.875rem; }
+        
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        .checkbox-label input { width: auto; margin-right: 0.5rem; }
+        
+        #permissionsGroup { display: none; }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+        .btn-cancel:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <h1>Observability Platform</h1>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/api/users/logout">Logout (<%= user.username %>)</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header-action">
+            <h2>User Management</h2>
+            <button class="btn btn-primary" onclick="openModal()">+ Create User</button>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Permissions (Analysts)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal" id="createUserModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Create New User</h3>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="role" required>
+                        <option value="viewer">Viewer</option>
+                        <option value="analyst">Analyst</option>
+                        <option value="super_admin">Super Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="permissionsGroup">
+                    <label>Allowed Categories (Analysts Only)</label>
+                    <div class="permissions-grid">
+                        <label class="checkbox-label"><input type="checkbox" name="permissions" value="performance"> Performance</label>
+                        <label class="checkbox-label"><input type="checkbox" name="permissions" value="behavioral"> Behavioral</label>
+                        <label class="checkbox-label"><input type="checkbox" name="permissions" value="audience"> Audience</label>
+                        <label class="checkbox-label"><input type="checkbox" name="permissions" value="errors"> Errors</label>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('role').addEventListener('change', (e) => {
+            const group = document.getElementById('permissionsGroup');
+            group.style.display = e.target.value === 'analyst' ? 'block' : 'none';
+        });
+
+        const fetchUsers = async () => {
+            const res = await fetch('/api/users');
+            const data = await res.json();
+            
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(u => {
+                let perms = '-';
+                if (u.role === 'analyst' && u.permissions) {
+                    perms = u.permissions.join(', ');
+                } else if (u.role === 'super_admin') {
+                    perms = 'ALL';
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${u.username}</strong></td>
+                        <td><span class="badge badge-${u.role}">${u.role.replace('_', ' ')}</span></td>
+                        <td><span style="color: #94a3b8; font-size: 0.85rem;">${perms}</span></td>
+                        <td>
+                            ${u.username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})">Delete</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+        };
+
+        const openModal = () => document.getElementById('createUserModal').classList.add('active');
+        const closeModal = () => {
+            document.getElementById('createUserModal').classList.remove('active');
+            document.getElementById('createUserForm').reset();
+            document.getElementById('permissionsGroup').style.display = 'none';
+        };
+
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            let permissions = [];
+            if (role === 'analyst') {
+                const checkboxes = document.querySelectorAll('input[name="permissions"]:checked');
+                checkboxes.forEach(cb => permissions.push(cb.value));
+            }
+
+            try {
+                const res = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role, permissions: permissions.length ? permissions : null })
+                });
+
+                if (res.ok) {
+                    closeModal();
+                    fetchUsers();
+                } else {
+                    const data = await res.json();
+                    alert(data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error');
+            }
+        });
+
+        const deleteUser = async (id) => {
+            if(!confirm('Are you sure you want to delete this user?')) return;
+            
+            await fetch(`/api/users/${id}`, { method: 'DELETE' });
+            fetchUsers();
+        };
+
+        fetchUsers();
+    </script>
+</body>
+</html>
