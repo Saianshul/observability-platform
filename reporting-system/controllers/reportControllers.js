@@ -96,7 +96,8 @@ export const getReportingDashboard = async (req, res) => {
         res.render('dashboard', {
             user: req.user,
             events: events,
-            logs: logs
+            logs: logs,
+            trackedSiteUrl: process.env.TRACKED_SITE_URL
         });
     } catch (err) {
         console.error(err);

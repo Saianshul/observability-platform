@@ -1384,7 +1384,8 @@
                             
                             const clicks = [];
                             (data.events || []).forEach(e => {
-                                const isHomepage = e.url && (e.url.replace(/\/$/, '') === 'https://test.saianshulv.site');
+                                const staticTrackedSiteUrl = '<%= trackedSiteUrl %>';
+                                const isHomepage = e.url && (e.url.replace(/\/$/, '') === staticTrackedSiteUrl);
                                 
                                 if (isHomepage) {
                                     let payload = e.payload;
